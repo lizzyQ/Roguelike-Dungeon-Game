@@ -46,19 +46,19 @@ https://developer.mozilla.org/en-US/docs/Games/Techniques/Tilemaps/Square_tilema
 
 ## lesson learned
  Had better understanding of react render fire time.
- This order list may help.
-   Parent component Will Mount
-   Parent component Render divs
-   Canvas/child component Will Mount
-   Canvas/child component Render divs
-   Canvas/child component Did Mount
-   Parent component Did Mount
-   Canvas/child component Render again
-   image loaded
-   
-  Rendered: React has converted your virtual DOM elements (specified in the render method) into real DOM elements and attached them to the DOM.
-  Loaded: Image data or other remote content has downloaded completely (or failed to download).
  
- Tried to make react ,canvas, and image loader work together, 
+   1. Parent component Will Mount
+   2. Parent component Render divs
+   3. Canvas/child component Will Mount
+   4. Canvas/child component Render divs
+   5. Canvas/child component Did Mount
+   6. Parent component Did Mount
+   7. Canvas/child component Render again
+   8. Image loaded
+
+Rendered: React has converted your virtual DOM elements (specified in the render method) into real DOM elements and attached them to the DOM.
+Loaded: Image data or other remote content has downloaded completely (or failed to download).
+ 
+Tried to make react ,canvas, and image loader work together, 
  and I spent quite a bit time try to put image.onload function inside the component will mount, 
  The code works, but I still not totally understand how did it work.
