@@ -1,0 +1,50 @@
+body{
+  background:#adebdc;
+}
+.infoContainer{
+  position:fixed;
+  top:0;
+  left:0;
+  box-sizing:border-box;
+  width:200px;
+  height:100vh;
+  padding:20px;
+  background:#122d37;
+  color:#e8e3ce;
+}
+.infoMessage{
+  width:140px;
+  height:80px;
+  padding:10px;
+  border:1px solid #e8e3ce;
+  font-size:14px;
+  font-weight:200;
+  color:#1e9e9f;
+  opacity:0.7;
+}
+.infoContainer button{
+  width:100%;
+  background:rgb(17,65,76);
+  border:2px solid #1e9e9f;
+  color:#e8e3ce;
+  opacity:0.8;
+}
+.infoContainer button:hover{
+  opacity:1;
+  cursor:pointer;
+}
+.infoContainer p span{
+  color:#1e9e9f;
+}
+.mapContainer{
+  width:600px;
+  height:420px;
+  margin: 45px 0 0 250px;
+  border: 3px solid #5a2926;
+}
+
+#player{
+  width:10px;
+  height:10px;
+  background:red;
+}

@@ -1,0 +1,645 @@
+const InfoBox = (props) =>{
+    return (
+           <div className="infoContainer">
+              <h3>Dungeon Crawler</h3>
+              <p className="infoMessage">
+                {props.info.message}
+              </p> 
+              <p>Level: 
+                <span> {props.info.level}</span>
+              </p>
+               <p>Weapon: 
+                <span> {props.info.weapon}</span>
+              </p>
+               <p>Health: 
+                <span> {props.info.health}</span>
+                <progress value={props.info.health} max="200"></progress></p>
+              <p>xp:
+                <span> {props.info.xp}</span>
+              </p> 
+              <p>Next Level: 
+                <span> {props.info.leftXp} XP</span>
+              </p>
+              <button onClick={() => props.newGame()}>Play again</button>
+          </div>
+    );
+}
+
+class Dungeon extends React.Component{
+  constructor(){
+    super();
+    this.state = {
+             ctx: null,
+             canvasW: 600,
+             canvasH: 420,
+             tsize: 30,
+    };
+  }
+  
+ componentWillMount(){
+   this.initialCanvas();
+ }
+  
+initialCanvas(){ 
+   let itemMap = this.props.itemMap,
+       floorMap = this.props.floorMap,
+       info = this.props.info;
+   let loadImg = this.loadImg();
+   let setCvData = this.setCvData(itemMap);
+  
+  document.addEventListener("keydown", this.handleKeyPress.bind(this));
+  this.setState({ 
+                  imagesLoader:loadImg,
+                  gameOn: true,
+                  itemMap: itemMap,
+                  floorMap:floorMap,
+                  info: info,
+                  hero: setCvData.heroCor,                    
+                  camera: setCvData.camera,              
+                  });
+ }//initialCanvas Over
+
+ loadImg(){
+   const imgSrcs = [
+    "https://github.com/lizzyQ/Roguelike-Dungeon-Game/blob/master/assets/tiles.png?raw=true",
+    "https://github.com/lizzyQ/Roguelike-Dungeon-Game/blob/master/assets/floor.png?raw=true",
+    "https://github.com/lizzyQ/Roguelike-Dungeon-Game/blob/master/assets/hero.png?raw=true"];
+   let imageObj = new Array();
+   //Assign onload handler to each image in array
+   for ( let i = 0; i < imgSrcs.length; i++ ){
+       imageObj[i] = new Image();
+       imageObj[i].onload = ((value)=>{
+           return ()=>{ this.setState({ loaded: value }); //return !important
+           }
+       })(i); //why need (i)? ,is it a call back, what does this thing do?
+      imageObj[i].src = imgSrcs[i];
+     }
+    return imageObj;
+ }
+  
+setCvData(map){ 
+   let cam = {}, hero = {},
+       imgSize = this.state.tsize,
+       heroX = this.props.heroCor[0] * imgSize,
+       heroY = this.props.heroCor[1] * imgSize, 
+       centerCvW = this.state.canvasW / 2,
+       centerCvH = this.state.canvasH / 2;
+   //EVERYTHING TO PX; heroXY is inGridPx and hero.x is inCanvasValue 
+   cam.maxX = (map.length - 1) * imgSize - this.state.canvasW; //600;
+   cam.maxY = (map[0].length - 1) * imgSize - this.state.canvasH; //480;
+   //sprite placed at the center of canvas
+   hero.x = centerCvW;
+   hero.y = centerCvH;
+   // make the camera follow the sprite
+   cam.x = heroX - centerCvW;
+   cam.y = heroY - centerCvH;
+   // clamp values
+   cam.x = Math.max(0, Math.min(cam.x, cam.maxX));
+   cam.y = Math.max(0, Math.min(cam.y, cam.maxY));
+  
+    // left and right sides
+    if (heroX < centerCvW || heroX > this.state.canvasW + centerCvW) {
+        hero.x = heroX - cam.x;
+    }
+    // top and bottom sides
+    if (heroY < centerCvH || heroY > this.state.canvasH + centerCvH) {
+        hero.y = heroY - cam.y;
+    }
+  return { camera:cam, heroCor:hero };
+} 
+  
+ componentWillUnmount() {
+    document.removeEventListener("keydown", this.handleKeyPress.bind(this));
+ } 
+ 
+componentDidMount(){   
+    let ctx = this.refs.gameMap.getContext("2d");
+    this.setState({  ctx:ctx });
+}
+  
+shouldComponentUpdate(){
+    return this.state.gameOn;
+}
+  
+componentDidUpdate(){
+ this.reDrawCv();
+}
+  
+reDrawCv(){
+  let ctx = this.state.ctx,
+      imgTile = this.state.imagesLoader[0],
+      imgFloor = this.state.imagesLoader[1],
+      imgHero = this.state.imagesLoader[2];
+  //Didmount happens faster than load func so we call drawlayer func here
+  ctx.clearRect(0, 0, this.state.canvasW, this.state.canvasH);
+  this.drawLayer(this.state.floorMap, imgFloor);
+  ctx.drawImage(imgHero, 0, 0, this.state.tsize, this.state.tsize, this.state.hero.x, this.state.hero.y, this.state.tsize, this.state.tsize);
+  this.drawLayer(this.state.itemMap, imgTile);
+} 
+  
+drawLayer(grid, img){
+   let ctx = this.state.ctx,
+       map = grid.concat(),
+       tsize = this.state.tsize;
+  
+   let startRow = Math.floor(this.state.camera.x / tsize), 
+       endRow = startRow + (this.state.canvasW / tsize),
+       startCol = Math.floor(this.state.camera.y / tsize),  
+       endCol = startCol + (this.state.canvasH / tsize), 
+       //shift amount in px
+       offsetX = -this.state.camera.x + startRow * tsize, 
+       offsetY = -this.state.camera.y + startCol * tsize;
+ 
+    for(let j=startRow; j<= endRow; j++){
+         for(let i=startCol; i<=endCol; i++){
+           let tile = map[j][i],
+               x = (j - startRow) * tsize + offsetX,//-30,0,30,60...570
+               y = (i - startCol) * tsize + offsetY;
+               if(tile!==0){  // 0 are empty space 
+                ctx.drawImage(
+                   img, 
+                   (tile - 1) * tsize, //decide which image we are using
+                   0, 
+                   tsize,
+                   tsize,
+                   Math.round(x), //target x
+                   Math.round(y), //target y
+                   tsize, 
+                   tsize
+                 );
+              }
+         }
+       } //end of for loop   
+ } //end of drawlayer
+    
+handleKeyPress(e){
+   let direction = e.keyCode,
+       dirx = 0,
+       diry = 0;
+   e.preventDefault();
+   switch(direction){
+          case 38:
+            diry = -1; //up
+          break;
+          case 40:
+            diry = 1; //down
+           break;
+          case 37:
+           dirx = -1; //left
+            break;
+          case 39:
+            dirx = 1; //right
+            break;
+    }
+    this.checkCollide(dirx, diry); 
+  }
+ 
+ checkCollide(dirx, diry){
+     let  map = this.state.itemMap,
+          size = this.state.tsize,
+          row = Math.floor( (this.state.camera.x + this.state.hero.x) / size), 
+          col = Math.floor( (this.state.camera.y + this.state.hero.y) / size);
+   
+   if(dirx > 0){ //right
+     row = Math.floor((this.state.camera.x + this.state.hero.x + 31) / size);
+   }else if(dirx < 0){//left
+     row = Math.floor((this.state.camera.x + this.state.hero.x - 3) / size);
+   }else if(diry > 0){//down
+     col = Math.floor((this.state.camera.y + this.state.hero.y + 31) / size);
+   }else if(diry < 0){//up
+     col = Math.floor((this.state.camera.y + this.state.hero.y - 2) / size);
+   }
+  
+   if(map[row][col] == 1){
+     return false;
+   }else if(map[row][col] == 0){
+    this.heroMove(dirx, diry);
+    this.cameraMove(dirx, diry);
+   }else{
+    this.updateInfo(map[row][col], row, col);
+   }
+  }
+
+updateInfo(tile, itemR, itemC){
+  const weapon = { unarmed:4, dagger: 10, axe: 20, maul: 40, }; //匕首，斧子，矛，大锤
+  const enemy = [0, 0, 40, 80, 120, 180];
+  let map = this.state.itemMap.concat(),
+      data = {},
+      info = this.state.info,
+      weaponKey = info.weapon;
+  
+  switch(tile){
+     case 2:
+     case 3:
+     case 4:
+     case 5:
+       info.damage += info.level * 5 + weapon[weaponKey];
+       info.message = "Damage: - " + info.damage;
+       info.health -= tile * 2; 
+       info.xp += tile * 3; 
+       if( (enemy[tile] - info.damage) <= 0){ 
+         info.message = "Enemy Destroyed, Keep moving.";
+         map[itemR][itemC] = 0;
+         info.damage = 0;
+       }; 
+     break;
+     case 6:
+       info.health += 88; //magical drink
+       map[itemR][itemC] = 0;
+     break;
+     case 7:
+      info.weapon = "dagger";
+      map[itemR][itemC] = 0;
+      info.message = "You got a dagger, Better than nothing.";
+     break;
+     case 8:
+      info.weapon = "axe";
+      map[itemR][itemC] = 0;
+      info.message = "An axe will help you make more damage";
+     break;
+     case 9:
+      info.weapon = "maul";
+      map[itemR][itemC] = 0;
+      info.message = "Wow, that's a killer weapon you got there.";
+     break;
+     case 10:
+       info.damage += info.level * 8 + weapon[weaponKey];
+       info.message = "Boss is strong.";
+       if( 300 - info.damage <= 0){ 
+         map[itemR][itemC] = 0;
+         info.message = "You Win!! ";
+         info.damage = 0;
+         this.gameOver(info.message);
+       };
+       info.health -= (tile-5) * 2; 
+       info.xp += (tile-4) * 3;
+    }
+ 
+  info.leftXp = info.level * 100 - info.xp;
+  
+  if(info.xp > 100 * info.level){ 
+    info.level = info.level + 1; 
+    info.message = "Good hit, Level up.";
+  }
+    
+  if(info.health<=0){
+   info.message = "Game Over!"; 
+   this.gameOver(info.message);
+  }else if(info.health > 0 && info.health < 20){
+    info.message = "You need to find the magical drink now."; 
+  }
+ 
+ if(info.level >= 4){
+   info.message = "Find the boss and start the real battle";
+   let bosscor = this.props.bossCor;
+   map[bosscor[0]][bosscor[1]] = 10;
+ }
+  
+ this.setState({
+    info: info,
+    map: map,
+  },function(){
+      this.props.updateInfo(this.state.info);
+  });  
+}
+ 
+heroMove(dirx, diry){  
+  let hero = {},
+      x = this.state.hero.x,
+      y = this.state.hero.y,
+      speed = 1.256, //px per press
+      maxX = this.state.canvasW - this.state.tsize,
+      maxY = this.state.canvasH - this.state.tsize;
+  x += dirx * speed;
+  y += diry * speed; 
+  hero.x = Math.max(0, Math.min(x, maxX));
+  hero.y = Math.max(0, Math.min(y, maxY));
+ 
+  this.setState({ hero: hero, });
+}
+  
+cameraMove(dirx, diry){
+     let cam ={},
+         x = this.state.camera.x,
+         y = this.state.camera.y,
+         speed = 1.256;
+         cam.maxX = this.state.camera.maxX, //600 camX max can go 600 but no more
+         cam.maxY = this.state.camera.maxY; //480 camY cam go 0~480 and mo more
+         x += dirx * speed;
+         y += diry * speed;
+        //clamp values
+         cam.x = Math.max(0, Math.min(x,  cam.maxX));
+         cam.y = Math.max(0, Math.min(y,  cam.maxY));
+     
+      this.setState({ camera: cam });       
+  }
+  
+gameOver(message){
+  this.setState({ gameOn:false, }); 
+  let ctx = this.state.ctx;
+  ctx.clearRect(0, 0, this.state.canvasW, this.state.canvasH);
+  ctx.fillStyle ="#000";
+  ctx.fillRect(0, 0, this.state.canvasW, this.state.canvasH); 
+  ctx.font = "50px Arial";
+  ctx.fillStyle = "#fff";
+  ctx.fillText(message,180, 180);
+}
+    
+ render() {
+    return (
+      <div className="mapContainer"  onKeyPress={this.handleKeyPress.bind(this)}> 
+        <canvas
+               ref = "gameMap"
+               width = {this.state.canvasW}
+               height = {this.state.canvasH}
+          >
+        </canvas>
+      </div>
+    );
+  }
+    
+}
+
+class Game extends React.Component{
+  constructor() {
+    super();
+    this.state = {
+      width: 40, 
+      height: 30, 
+      maxCell: 10,
+    }//state end
+  }//constructor end
+ 
+  componentWillMount(){
+    this.initialGame();
+  }
+ // initial grid and get the cell structure 
+ initialGame(){ 
+  let info = { level:1, xp: 0, leftXp: 100, health :100, weapon: 'unarmed', damage: 4,
+           message: "The boss will show in level 4. Press arrow keys to move around. Let's Go!",
+             },
+      grid = this.initialGrid(),
+      cells = this.setupCells(grid),
+      roomMap = this.setupRooms(grid, cells),
+      landMap = this.setupLandMap(roomMap),
+      itemMap = this.setupItemMap(landMap, cells.length);
+    
+   this.setState({
+     info:info,
+     grid:grid,
+     cells:cells,
+     rooms:roomMap.rooms,
+     landMap:landMap,
+     itemMap:itemMap[0],
+     floorMap:itemMap[1],
+     heroCor:itemMap[2],
+     bossCor: itemMap[3],
+  });
+} 
+  
+initialGrid(){
+  let gridW = this.state.width,
+      gridH = this.state.height,
+      grid =[]; 
+  for(let gw=0; gw<gridW; gw++){
+      grid.push(Array(gridH).fill(2));
+  }  
+  return grid;
+}
+  
+setupCells(grid){
+   let gridW = this.state.width,
+       gridH = this.state.height,
+       maxCell = this.state.maxCell,
+       cellStructure=[];
+  
+   for(let w=0; w < gridW/maxCell; w++){
+       for(let h=0; h < gridH/maxCell; h++){
+           let cells = {
+                     tl: [w*maxCell, h*maxCell], 
+                     tr: [w*maxCell, h*maxCell+ maxCell-1], 
+                     bl: [w*maxCell + maxCell-1, h*maxCell], 
+                     br: [w*maxCell + maxCell-1, h*maxCell + maxCell-1]
+           };
+           cellStructure.push(cells);
+        // grid[w*maxCell][h*maxCell] = 1; //tl
+        // grid[w*maxCell][h*maxCell+ maxCell-1] = 2; //tr
+        // grid[w*maxCell + maxCell-1][h*maxCell] = 3; //bl
+        // grid[w*maxCell + maxCell-1][h*maxCell + maxCell-1] = 4;//br     
+      }
+   }
+   return cellStructure;
+}
+  
+setupRooms(grid, cells){
+  let copyGrid = grid.concat(),
+      copyCells = cells.concat(),
+      maxCell = this.state.maxCell,
+      roomNum = (this.state.width/maxCell) * (this.state.height/maxCell),
+      conners = Object.keys(copyCells[0]),
+      rooms = []; 
+    
+   for (let r = 0; r < roomNum; r++){       
+     let a, b,
+         roomW = this.getRandomInt(5, maxCell-2),//room size: 4*5 ~ 9*9
+         roomH = this.getRandomInt(4, maxCell-2),
+         rdmIdx = this.getRandomInt(0, copyCells.length-1), // get a random cell
+         rdmC = this.getRandomInt(0, conners.length-1), // select a random conner
+         conner = copyCells[rdmIdx][conners[rdmC]];
+     // get the room's upper left conner =>  array point of view
+     switch(conners[rdmC]){
+        case 'tl':
+         a = conner[0] + 1; 
+         b = conner[1] + 1;
+         break;
+       case 'tr':
+         a = conner[0] + 1;
+         b = conner[1] - roomH;
+         break;
+       case 'bl':
+         a = conner[0] - roomW;
+         b = conner[1] + 1;
+        break;
+       case 'br':
+         a = conner[0] - roomW;
+         b = conner[1] - roomH;
+         break;
+       }
+     // get top, left, bottom right of each room
+     rooms.push([a, b, a+roomW, b+roomH]); 
+     //fill the rooms
+     for(let w = a; w < a+roomW; w++){
+       for(let h = b; h < b+roomH; h++){
+          copyGrid[w][h] = 1;          
+       }
+     } 
+     copyCells.splice(rdmIdx, 1);      
+   }
+  return {rooms: rooms, grid:copyGrid};
+}  
+ 
+getRandomInt(min, max) {
+ return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+  
+setupLandMap(roomMap){
+  let sameRow = [[],[],[],[]],
+      sameCol = [[],[],[]],
+      rooms = roomMap.rooms,
+      copyGrid = roomMap.grid;
+   
+  for(let j=0; j< rooms.length;j++){
+     let room = rooms[j], 
+         top = room[0], 
+         left = room[1];        
+     if(top < 10){ sameRow[0].push(room);
+       }else if( top > 0 && top < 20){ sameRow[1].push(room);
+       }else if(top > 20 && top < 30){ sameRow[2].push(room);
+       }else if(top > 30){ sameRow[3].push(room);}
+
+     if(left < 10){ sameCol[0].push(room);
+       }else if(left > 10 && left < 20){ sameCol[1].push(room);
+       }else if(left > 20){ sameCol[2].push(room); }
+   } 
+  //room = [t,l,b,r];      
+  for(let j=0; j<sameRow.length; j++){
+      if(sameRow[j].length > 1){
+           let roomsInRow = sameRow[j];
+           roomsInRow.sort((a, b) => {
+                    return a[1] - b[1];
+            });            
+  
+           for(let i=0; i< roomsInRow.length-1; i++){
+               let x0 = Math.max(roomsInRow[i][0], roomsInRow[i+1][0]),   
+                   y0 = Math.min(roomsInRow[i][2], roomsInRow[i+1][2]), 
+                   x1 = roomsInRow[i][3],  
+                   y1 = roomsInRow[i+1][1],
+                   scale = y0-x0 < 3 ? y0 : x0+2;
+               for(let row = x0; row < scale; row++){
+                 for(let col = x1; col < y1; col++){
+                     copyGrid[row][col] = 1;
+                 }
+               } 
+          }// End of roomsInRow loop       
+     }//End of if sameRow
+   }
+  
+   for(let j=0; j<sameCol.length; j++){
+      if(sameCol[j].length > 1){
+           let roomsInCol = sameCol[j];
+           roomsInCol.sort((a, b) => {
+                    return a[0] - b[0];
+            }); 
+      
+           for(let i=0; i< roomsInCol.length-1; i++){
+               let x0 = roomsInCol[i][2], //room1 butt 
+                   y0 = roomsInCol[i+1][0],//room2 top
+                   x1 = Math.max(roomsInCol[i][1], roomsInCol[i+1][1]),   
+                   y1 = Math.min(roomsInCol[i][3], roomsInCol[i+1][3]),
+                   scale = y1-x1 < 3 ? y1 : x1+2;
+               for(let row = x0; row < y0; row++){
+                 for(let col = x1; col < scale; col++){
+                     copyGrid[row][col] = 1;
+                 }
+               } 
+          }// End of roomsInRow loop       
+     }//End of if sameRow
+   } 
+   return copyGrid;
+}
+  
+setupItemMap(landMap, roomN){
+  let grid = landMap.concat(),
+      floorMap = [],
+      itemMap = [],
+      possibleItemsP = [];
+  
+  for(let r=0; r<grid.length; r++){
+      itemMap.push([]);
+      floorMap.push([]);
+      for(let c=0; c<grid[r].length; c++){
+           floorMap[r].push(0); //set whole map to empty
+           itemMap[r].push(1); //set the whole map to walls
+           if(grid[r][c] == 1){ //if it's floor
+              possibleItemsP.push([r,c]);
+              floorMap[r][c] = 1;
+              itemMap[r][c] = 0;
+           }         
+     }
+  }
+ 
+  for(let i=0; i<roomN*3; i++){  //Sprinkle 24 enemys in random floors
+      let item = this.getRandomInt(2, 5);
+      let rdmIdx = this.getRandomInt(0, possibleItemsP.length-1);
+      let a = possibleItemsP[rdmIdx][0],
+          b = possibleItemsP[rdmIdx][1];  
+      
+     itemMap[a][b] = item;
+     possibleItemsP.splice(rdmIdx, 1); 
+  }
+  
+  for(let i=0; i<roomN*2; i++){  //Sprinkle 12 items in random floors
+      let item = this.getRandomInt(7, 9);
+      let rdmIdx = this.getRandomInt(0, possibleItemsP.length-1);
+      let a = possibleItemsP[rdmIdx][0],
+          b = possibleItemsP[rdmIdx][1];  
+     if(i < roomN){
+       itemMap[a][b] = item;
+       }else{
+       itemMap[a][b] = 6; 
+      }
+     possibleItemsP.splice(rdmIdx, 1); 
+  }
+  
+  let bossIdx = this.getRandomInt(0, possibleItemsP.length);
+  let bossCor = possibleItemsP[bossIdx];
+  
+  let heroIdx = this.getRandomInt(0, possibleItemsP.length);
+  let heroCor = possibleItemsP[heroIdx];
+  //console.log(JSON.stringify(copyGrid));
+  return [itemMap, floorMap, heroCor, bossCor];
+}
+  
+ updateInfo(info){
+   this.setState({ info: info });
+ }
+ 
+onNewGame(){
+    this.setState({ info:{}, 
+                    grid:[],
+                    cells:[],
+                    rooms:[],
+                    landMap:[],
+                    itemMap:[],
+                    floorMap:[],
+                    heroCor:[],
+                    bossCor:[],
+                  },function(){
+      this.refs.dungeon.initialCanvas();
+    });
+    this.initialGame();      
+ } 
+ 
+  render() {
+    return (
+           <div>
+               <InfoBox info = {this.state.info}
+                        newGame = {this.onNewGame.bind(this)} />
+               <Dungeon ref = "dungeon"
+                        floorMap = {this.state.floorMap}
+                        itemMap = {this.state.itemMap}
+                        heroCor = {this.state.heroCor}
+                        info = {this.state.info} 
+                        updateInfo = {this.updateInfo.bind(this)}
+                        bossCor = {this.state.bossCor}
+                />
+          </div>
+    );
+  }  
+}
+
+ReactDOM.render(
+  <Game />,
+  document.getElementById('container')
+);
+
