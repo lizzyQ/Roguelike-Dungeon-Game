@@ -38,7 +38,11 @@ The user has to move around to match the eaxct tile the items/enemy at to fight.
 
    Followed [this one](http://www.roguebasin.com/index.php?title=Grid_Based_Dungeon_Generator) to sucessfully built the map.
    - http://www.roguebasin.com/index.php?title=Grid_Based_Dungeon_Generator -
-   
+***
+Tilemap reference
+https://developer.mozilla.org/en-US/docs/Games/Techniques/Tilemaps/Square_tilemaps_implementation%3A_Scrolling_maps
+
+***
 
 ## lesson learned
  Had better understanding of react render fire time.
