@@ -29,10 +29,10 @@ The user has to move around to match the eaxct tile the items/enemy at to fight.
    but in grid[x][y],x is the distance to top, y is the distance to left
    e.g. fillRect x:2, y:1 (left) vs. grid[2][1] on the right
 
-   0 0 0 0 0 0 0    |    0 0 0 0 0 0 0
-   0 0 * 0 0 0 0    |    0 0 0 0 0 0 0 
-   0 0 0 0 0 0 0    |    0 * 0 0 0 0 0 
-   0 0 0 0 0 0 0    |    0 0 0 0 0 0 0
+         0 0 0 0 0 0 0    |    0 0 0 0 0 0 0
+         0 0 * 0 0 0 0    |    0 0 0 0 0 0 0 
+         0 0 0 0 0 0 0    |    0 * 0 0 0 0 0 
+         0 0 0 0 0 0 0    |    0 0 0 0 0 0 0
     
 ## Helpful reference  
 
