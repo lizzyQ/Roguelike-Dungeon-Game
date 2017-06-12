@@ -57,6 +57,7 @@ https://developer.mozilla.org/en-US/docs/Games/Techniques/Tilemaps/Square_tilema
    8. Image loaded
 
 Rendered: React has converted your virtual DOM elements (specified in the render method) into real DOM elements and attached them to the DOM.
+
 Loaded: Image data or other remote content has downloaded completely (or failed to download).
  
 Tried to make react ,canvas, and image loader work together, 
