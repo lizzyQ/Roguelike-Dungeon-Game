@@ -11,7 +11,7 @@ Much of the map is hidden. When User take a step, all spaces that are within a c
 ---
 ## Preview
 
-![Project Preview](https://github.com/lizzyQ/Roguelike-Dungeon-Game/blob/master/preview.png?raw=true)
+![Project Preview](https://github.com/lizzyQ/Roguelike-Dungeon-Game/blob/master/assets/preview.png?raw=true)
 
 [*Demo*](https://codepen.io/lizzyQ/full/JWVQXy/). 
 
